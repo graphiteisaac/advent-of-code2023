@@ -1,8 +1,13 @@
 fn main() {
-    let input = std::fs::read("src/day-2/input.txt").expect("could not read file");
-    let one_sum = part_one(String::from_utf8(input).unwrap());
+    let input =
+        String::from_utf8(std::fs::read("src/day-2/input.txt").expect("could not read file"))
+            .unwrap();
 
+    let one_sum = part_one(&input);
     println!("Sum of part one: {}", one_sum);
+
+    let two_sum = part_two(&input);
+    println!("Sum of part two: {}", two_sum);
 }
 
 #[derive(Debug)]
@@ -30,7 +35,7 @@ impl Game {
     }
 }
 
-fn part_one(input: String) -> u32 {
+fn part_one(input: &String) -> u32 {
     let mut buffer = String::from("");
     let mut sum = 0;
     let mut game = Game {
@@ -120,6 +125,104 @@ fn part_one(input: String) -> u32 {
     sum
 }
 
+fn part_two(input: &String) -> u32 {
+    let mut buffer = String::from("");
+    let mut sum = 0;
+    let mut game = Game {
+        id: 0,
+        rounds: Vec::new(),
+    };
+
+    let mut state = State::None;
+    let mut chars = input.chars().peekable();
+
+    loop {
+        let ch = chars.next().unwrap();
+
+        match ch {
+            '0'..='9' => {
+                if matches!(state, State::None) {
+                    buffer.clear();
+                    state = State::Game;
+                    game.rounds.push(Round {
+                        red: 0,
+                        blue: 0,
+                        green: 0,
+                    })
+                }
+            }
+            ' ' => {
+                if matches!(state, State::Round) {
+                    let peek = chars.peek().unwrap();
+
+                    match peek {
+                        'r' => {
+                            game.rounds.last_mut().unwrap().red += buffer.parse::<u32>().unwrap()
+                        }
+                        'g' => {
+                            game.rounds.last_mut().unwrap().green += buffer.parse::<u32>().unwrap()
+                        }
+                        'b' => {
+                            game.rounds.last_mut().unwrap().blue += buffer.parse::<u32>().unwrap()
+                        }
+                        _ => {}
+                    }
+                    buffer.clear();
+                }
+            }
+            ':' => {
+                state = State::Round;
+                game.id = buffer.parse::<u32>().unwrap();
+                buffer.clear();
+            }
+            '\n' => {
+                let mut max_blue = 0;
+                let mut max_red = 0;
+                let mut max_green = 0;
+
+                for round in &game.rounds {
+                    if round.red > max_red {
+                        max_red = round.red
+                    }
+
+                    if round.green > max_green {
+                        max_green = round.green
+                    }
+
+                    if round.blue > max_blue {
+                        max_blue = round.blue
+                    }
+                }
+
+                sum += (max_blue * max_red * max_green);
+
+                buffer.clear();
+                game.reset();
+                state = State::None;
+            }
+            ';' => game.rounds.push(Round {
+                red: 0,
+                blue: 0,
+                green: 0,
+            }),
+            ',' => {
+                buffer.clear();
+            }
+            _ => {}
+        }
+
+        if ch != ' ' && ch != ',' && ch != ';' && ch != ':' {
+            buffer.push(ch)
+        }
+
+        if chars.peek().is_none() {
+            break;
+        }
+    }
+
+    sum
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -135,7 +238,10 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green
 ",
         );
 
-        let one_sum = part_one(input);
-        println!("Sum of part one: {}", one_sum)
+        let one_sum = part_one(&input);
+        println!("Sum of part one: {}", one_sum);
+
+        let two_sum = part_two(&input);
+        println!("Sum of part two: {}", two_sum);
     }
 }
